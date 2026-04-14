@@ -1,88 +1,35 @@
-<!DOCTYPE html>
-
-<html>
-<head>
-  <meta charset="UTF-8">
-  <title>Player</title>
-
-  <!-- WaveSurfer CDN -->
-
-  <script src="https://unpkg.com/wavesurfer.js"></script>
-
-  <style>
-    body {
-      margin: 0;
-      background: #0D0D0D;
-      font-family: Arial, sans-serif;
-      color: white;
+<style>
+    /* --- STYLING BLOCK --- */
+    .audio-container {
+        background-color: #f5f5f5; /* Light gray background */
+        padding: 20px;
+        border-radius: 10px; /* Soft corners */
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); /* Professional shadow */
+        text-align: center;
+        max-width: 600px; /* Keeps it from stretching too wide */
+        margin: 30px auto; /* Centers the entire block */
     }
-
-    #waveform {
-      margin: 10px;
+    .audio-container h3 {
+        color: #333;
+        margin-bottom: 15px;
+        font-size: 1.4em;
     }
-
-    button {
-      margin: 10px;
-      padding: 8px 12px;
-      background: #FF3B3B;
-      border: none;
-      color: white;
-      border-radius: 6px;
-      cursor: pointer;
+    /* Style for the native HTML audio player */
+    audio {
+        width: 100%;
+        max-width: 500px;
+        margin-top: 15px;
+        /* Optional: Add a little border to make it feel contained */
+        border-radius: 8px; 
     }
-  </style>
+</style>
 
-</head>
-
-<body>
-
-  <div id="waveform"></div>
-
-<button id="playBtn">▶ Play</button>
-
-  <script>
-    // Get audio URL from ?audio=
-    const params = new URLSearchParams(window.location.search);
-    const audioUrl = params.get('audio');
-
-    // Create player
-    const wavesurfer = WaveSurfer.create({
-      container: '#waveform',
-      waveColor: '#444',
-      progressColor: '#FF3B3B',
-      height: 80
-    });
-
-    // Load audio
-    if (audioUrl) {
-      wavesurfer.load(audioUrl);
-    } else {
-      alert("No audio URL provided");
-    }
-
-    // Play button
-    const btn = document.getElementById('playBtn');
-
-    btn.onclick = () => {
-      wavesurfer.playPause();
-    };
-
-    // Enable button only when ready
-    wavesurfer.on('ready', () => {
-      btn.style.opacity = "1";
-      btn.disabled = false;
-    });
-
-    // Disable button until loaded
-    btn.disabled = true;
-    btn.style.opacity = "0.5";
-
-    // Debug errors (IMPORTANT)
-    wavesurfer.on('error', (e) => {
-      console.error("WaveSurfer error:", e);
-      alert("Audio failed to load. Check your link.");
-    });
-  </script>
-
-</body>
-</html>
+<!-- PASTE YOUR AUDIO TAG HERE -->
+<div class="audio-container">
+    <h3>Listen to our latest audio content</h3>
+    <!-- IMPORTANT: Replace 'your-audio-file.mp3' with the actual file path. -->
+    <audio controls>
+        <source src="https://raw.githubusercontent.com/iexii/player/main/testt.mp3" type="audio/mpeg">
+        Your browser does not support the audio element.
+    </audio>
+</div>
