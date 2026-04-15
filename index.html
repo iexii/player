@@ -1,35 +1,99 @@
-<style>
-    /* --- STYLING BLOCK --- */
-    .audio-container {
-        background-color: #f5f5f5; /* Light gray background */
-        padding: 20px;
-        border-radius: 10px; /* Soft corners */
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); /* Professional shadow */
-        text-align: center;
-        max-width: 600px; /* Keeps it from stretching too wide */
-        margin: 30px auto; /* Centers the entire block */
-    }
-    .audio-container h3 {
-        color: #333;
-        margin-bottom: 15px;
-        font-size: 1.4em;
-    }
-    /* Style for the native HTML audio player */
-    audio {
-        width: 100%;
-        max-width: 500px;
-        margin-top: 15px;
-        /* Optional: Add a little border to make it feel contained */
-        border-radius: 8px; 
-    }
-</style>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <style>
+        body { background: #0f0f0f; color: #eee; font-family: 'Inter', sans-serif; margin: 0; padding: 20px; }
+        #waveform { width: 100%; height: 128px; background: #1a1a1a; border-radius: 8px; margin-bottom: 20px; }
+        .playlist { list-style: none; padding: 0; border-top: 1px solid #333; }
+        .track { 
+            padding: 12px; border-bottom: 1px solid #222; cursor: pointer; 
+            display: flex; justify-content: space-between; transition: 0.2s;
+        }
+        .track:hover { background: #222; }
+        .track.active { color: #00ff88; background: #1a1a1a; font-weight: bold; }
+        .controls { display: flex; gap: 15px; align-items: center; margin-bottom: 15px; }
+        button { background: #00ff88; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+    </style>
+</head>
+<body>
 
-<!-- PASTE YOUR AUDIO TAG HERE -->
-<div class="audio-container">
-    <h3>Listen to our latest audio content</h3>
-    <!-- IMPORTANT: Replace 'your-audio-file.mp3' with the actual file path. -->
-    <audio controls>
-        <source src="https://www.dropbox.com/scl/fi/nyw64lfmnzmpxi4lmelju/testt.mp3?rlkey=8odvgkeg6d7y9sdh4i8q6fkcc&st=i433f01p&raw=1" type="audio/mpeg">
-        Your browser does not support the audio element.
-    </audio>
-</div>
+    <div class="controls">
+        <button id="playBtn">Play / Pause</button>
+        <span id="currentTitle">Select a track</span>
+    </div>
+
+    <div id="waveform"></div>
+
+    <ul class="playlist" id="playlist">
+        </ul>
+
+    <script type="module">
+        import WaveSurfer from 'https://unpkg.com/wavesurfer.js@7/dist/wavesurfer.esm.js'
+
+        // 1. LIST YOUR SAMPLES HERE
+        const tracks = [
+            { name: "Heavy Kick Sample", url: "https://raw.githubusercontent.com/iexii/player/main/testt.mp3" },
+            { name: "Dark Snare 01", url: "https://www.dropbox.com/scl/fi/nyw64lfmnzmpxi4lmelju/testt.mp3?rlkey=8odvgkeg6d7y9sdh4i8q6fkcc&st=i433f01p&raw=1" },
+            { name: "Atmospheric Pad", url: "https://drive.google.com/uc?export=download&id=10CscP-Ty_Cbpg6L8h3l8Xp2s28pLZxv5" }
+        ];
+
+        let currentTrackIndex = 0;
+
+        const wavesurfer = WaveSurfer.create({
+            container: '#waveform',
+            waveColor: '#444',
+            progressColor: '#00ff88',
+            cursorColor: '#00ff88',
+            barWidth: 2,
+            barGap: 3,
+            height: 128,
+            backend: 'MediaElement'
+        });
+
+        const playlistElem = document.getElementById('playlist');
+        const titleElem = document.getElementById('currentTitle');
+
+        // Render Playlist
+        tracks.forEach((track, index) => {
+            const li = document.createElement('li');
+            li.classList.add('track');
+            li.innerHTML = `<span>${track.name}</span>`;
+            li.onclick = () => playTrack(index);
+            playlistElem.appendChild(li);
+        });
+
+        // ... existing WaveSurfer.create code ...
+
+function playTrack(index, shouldPlay = true) {
+    currentTrackIndex = index;
+    const track = tracks[index];
+    
+    // Update UI
+    document.querySelectorAll('.track').forEach((t, i) => {
+        t.classList.toggle('active', i === index);
+    });
+    titleElem.innerText = track.name;
+
+    // Load the track
+    wavesurfer.load(track.url);
+
+    // Only play if shouldPlay is true (user clicked a track or play button)
+    if (shouldPlay) {
+        wavesurfer.once('ready', () => wavesurfer.play());
+    }
+}
+
+// Auto-play NEXT track only after the user has already started the session
+wavesurfer.on('finish', () => {
+    if (currentTrackIndex < tracks.length - 1) {
+        playTrack(currentTrackIndex + 1, true); // This will autoplay the NEXT one
+    }
+});
+
+document.getElementById('playBtn').onclick = () => wavesurfer.playPause();
+
+// INITIAL LOAD: Load the first track but do NOT play it (shouldPlay = false)
+playTrack(0, false);
+    </script>
+</body>
+</html>
