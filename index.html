@@ -83,84 +83,88 @@
         </ul>
 
     <script type="module">
-        import WaveSurfer from 'https://unpkg.com/wavesurfer.js@7/dist/wavesurfer.esm.js'
+    import WaveSurfer from 'https://unpkg.com/wavesurfer.js@7/dist/wavesurfer.esm.js'
 
-        const tracks = [
-            { name: "Heavy Kick Sample", url: "https://raw.githubusercontent.com/iexii/player/main/testt.mp3" },
-            { name: "Dark Snare 01", url: "https://raw.githubusercontent.com/iexii/player/main/testt.mp3" },
-            { name: "Atmospheric Pad", url: "https://raw.githubusercontent.com/iexii/player/main/testt.mp3" }
-        ];
+    const tracks = [
+        { name: "Heavy Kick Sample", url: "https://raw.githubusercontent.com/iexii/player/main/testt.mp3" },
+        { name: "Dark Snare 01", url: "https://raw.githubusercontent.com/iexii/player/main/testt.mp3" },
+        { name: "Atmospheric Pad", url: "https://raw.githubusercontent.com/iexii/player/main/testt.mp3" }
+    ];
 
-        let currentTrackIndex = 0;
+    let currentTrackIndex = 0;
 
-        const wavesurfer = WaveSurfer.create({
-            container: '#waveform',
-            waveColor: '#444',
-            progressColor: '#00ff88',
-            cursorColor: '#00ff88',
-            barWidth: 2,
-            barGap: 3,
-            height: 128,
-            backend: 'MediaElement'
+    const wavesurfer = WaveSurfer.create({
+        container: '#waveform',
+        waveColor: '#444',
+        progressColor: '#00ff88',
+        cursorColor: '#00ff88',
+        barWidth: 2,
+        barGap: 3,
+        height: 128,
+        backend: 'MediaElement'
+    });
+
+    const playlistElem = document.getElementById('playlist');
+    const titleElem = document.getElementById('currentTitle');
+    const playBtn = document.getElementById('playBtn');
+
+    // Helper to refresh the icon inside the button
+    function updateIcon(isPlaying) {
+        playBtn.innerHTML = isPlaying 
+            ? '<i data-lucide="pause"></i>' 
+            : '<i data-lucide="play"></i>';
+        lucide.createIcons(); // Tells Lucide to look for the new <i> tag
+    }
+
+    // Render Playlist
+    tracks.forEach((track, index) => {
+        const li = document.createElement('li');
+        li.classList.add('track');
+        li.innerHTML = `<span>${track.name}</span>`;
+        li.onclick = () => playTrack(index, true); // User click ALWAYS plays
+        playlistElem.appendChild(li);
+    });
+
+    function playTrack(index, shouldPlay = true) {
+        currentTrackIndex = index;
+        const track = tracks[index];
+        
+        document.querySelectorAll('.track').forEach((t, i) => {
+            t.classList.toggle('active', i === index);
         });
+        titleElem.innerText = track.name;
 
-        const playlistElem = document.getElementById('playlist');
-        const titleElem = document.getElementById('currentTitle');
-        const playIcon = document.getElementById('playIcon');
+        wavesurfer.load(track.url);
 
-        // Initialize Lucide Icons
-        lucide.createIcons();
-
-        // Render Playlist
-        tracks.forEach((track, index) => {
-            const li = document.createElement('li');
-            li.classList.add('track');
-            li.innerHTML = `<span>${track.name}</span>`;
-            li.onclick = () => playTrack(index);
-            playlistElem.appendChild(li);
-        });
-
-        function playTrack(index, shouldPlay = true) {
-            currentTrackIndex = index;
-            const track = tracks[index];
-            
-            document.querySelectorAll('.track').forEach((t, i) => {
-                t.classList.toggle('active', i === index);
+        if (shouldPlay) {
+            wavesurfer.once('ready', () => {
+                wavesurfer.play();
             });
-            titleElem.innerText = track.name;
-
-            wavesurfer.load(track.url);
-
-            if (shouldPlay) {
-                wavesurfer.once('ready', () => {
-                    wavesurfer.play();
-                    updateIcon(true);
-                });
-            }
         }
+    }
 
-        // Toggle Icon helper
-        function updateIcon(isPlaying) {
-            const iconName = isPlaying ? 'pause' : 'play';
-            playIcon.setAttribute('data-lucide', iconName);
-            lucide.createIcons();
+    // Icon state listeners
+    wavesurfer.on('play', () => updateIcon(true));
+    wavesurfer.on('pause', () => updateIcon(false));
+
+    // Handle track finishing
+    wavesurfer.on('finish', () => {
+        let nextIndex = currentTrackIndex + 1;
+        
+        // Check if there actually IS a next track
+        if (nextIndex < tracks.length) {
+            playTrack(nextIndex, true);
+        } else {
+            // End of playlist: stop and show play icon
+            updateIcon(false);
         }
+    });
 
-        wavesurfer.on('play', () => updateIcon(true));
-        wavesurfer.on('pause', () => updateIcon(false));
+    playBtn.onclick = () => wavesurfer.playPause();
 
-        wavesurfer.on('finish', () => {
-            if (currentTrackIndex < tracks.length - 1) {
-                playTrack(currentTrackIndex + 1, true);
-            } else {
-                updateIcon(false);
-            }
-        });
-
-        document.getElementById('playBtn').onclick = () => wavesurfer.playPause();
-
-        // Initial Load
-        playTrack(0, false);
-    </script>
+    // Initial Setup: Initialize Lucide and load first track (no autoplay)
+    lucide.createIcons();
+    playTrack(0, false);
+</script>
 </body>
 </html>
