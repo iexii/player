@@ -124,39 +124,41 @@
     });
 
     async function playTrack(index, shouldPlay = true) {
-        if (isChangingTrack) return; // Ignore requests if already switching
-        isChangingTrack = true;
+    if (isChangingTrack) return;
+    isChangingTrack = true;
 
-        currentTrackIndex = index;
-        const track = tracks[index];
-        
-        // Update UI
-        document.querySelectorAll('.track').forEach((t, i) => {
-            t.classList.toggle('active', i === index);
-        });
-        titleElem.innerText = `Loading: ${track.name}...`;
+    currentTrackIndex = index;
+    const track = tracks[index];
+    
+    // Update UI
+    document.querySelectorAll('.track').forEach((t, i) => {
+        t.classList.toggle('active', i === index);
+    });
+    titleElem.innerText = `Loading: ${track.name}...`;
 
-        // 1. Fully stop and clear the previous state
-        wavesurfer.pause();
+    // --- NEW: THE RESET FIX ---
+    wavesurfer.pause();
+    wavesurfer.setTime(0); // This resets the "lit up" green progress to 0%
+    // ---------------------------
+    
+    try {
+        await wavesurfer.load(track.url);
+        titleElem.innerText = track.name;
         
-        // 2. Load new track
-        try {
-            await wavesurfer.load(track.url);
-            titleElem.innerText = track.name;
-            
-            if (shouldPlay) {
-                wavesurfer.play();
-            } else {
-                updateIcon(false);
-            }
-        } catch (err) {
-            console.error("Load failed", err);
-            titleElem.innerText = "Error Loading Track";
+        if (shouldPlay) {
+            wavesurfer.play();
+        } else {
+            // Ensure the icon is "Play" if we are just loading the next track
+            updateIcon(false);
         }
-
-        // 3. Unlock the player
-        setTimeout(() => { isChangingTrack = false; }, 500);
+    } catch (err) {
+        console.error("Load failed", err);
+        titleElem.innerText = "Error Loading Track";
     }
+
+    // Small delay to prevent accidental double-triggers
+    setTimeout(() => { isChangingTrack = false; }, 300);
+}
 
     wavesurfer.on('play', () => updateIcon(true));
     wavesurfer.on('pause', () => updateIcon(false));
