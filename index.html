@@ -4,178 +4,131 @@
     <meta charset="UTF-8">
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        /* Transparency & Layout */
         body { 
             background: transparent; 
             color: #eee; 
             font-family: 'Inter', sans-serif; 
             margin: 0; 
-            padding: 10px; 
-            overflow-x: hidden;
+            padding: 20px; 
         }
 
-        /* Waveform Styling */
-        #waveform { 
-            width: 100%; 
-            height: 128px; 
-            background: rgba(255, 255, 255, 0.03); /* Very slight tint for depth */
-            border-radius: 12px; 
-            margin-bottom: 20px; 
-            cursor: pointer;
-            transition: filter 0.3s ease, transform 0.3s ease;
-        }
+        .sample-list { list-style: none; padding: 0; }
 
-        /* "Light up" effect on hover */
-        #waveform:hover {
-            filter: brightness(1.4) drop-shadow(0 0 10px rgba(0, 255, 136, 0.2));
-        }
-
-        /* Playlist Styling */
-        .playlist { list-style: none; padding: 0; border-top: 1px solid rgba(255,255,255,0.1); }
-        .track { 
-            padding: 14px; 
-            border-bottom: 1px solid rgba(255,255,255,0.05); 
-            cursor: pointer; 
+        /* Individual Track Row */
+        .track-row { 
             display: flex; 
-            justify-content: space-between; 
-            transition: 0.2s;
-            background: transparent;
+            align-items: center; 
+            gap: 15px; 
+            padding: 15px 0; 
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            transition: background 0.2s;
         }
-        .track:hover { background: rgba(255, 255, 255, 0.05); }
-        .track.active { color: #00ff88; font-weight: bold; }
+        .track-row:hover { background: rgba(255,255,255,0.02); }
 
-        /* Controls */
-        .controls { display: flex; gap: 15px; align-items: center; margin-bottom: 15px; }
-        
-        #playBtn { 
+        /* Play Button Styling */
+        .play-btn { 
             background: transparent; 
-            border: 1px solid rgba(255,255,255,0.2); 
+            border: 1px solid rgba(0, 255, 136, 0.3); 
             color: #00ff88; 
-            width: 45px;
-            height: 45px;
+            width: 40px; 
+            height: 40px; 
             border-radius: 50%; 
             cursor: pointer; 
-            display: flex;
-            align-items: center;
+            display: flex; 
+            align-items: center; 
             justify-content: center;
-            transition: all 0.2s ease;
+            flex-shrink: 0; /* Keeps button from squishing */
         }
-        #playBtn:hover {
-            border-color: #00ff88;
-            transform: scale(1.05);
+        .play-btn:hover { border-color: #00ff88; background: rgba(0, 255, 136, 0.05); }
+
+        /* Track Info */
+        .track-info { width: 150px; flex-shrink: 0; font-size: 0.9rem; font-weight: 500; }
+
+        /* The Waveform for this specific track */
+        .waveform-container { 
+            flex-grow: 1; 
+            height: 40px; 
+            cursor: pointer; 
+            filter: brightness(0.8);
+            transition: filter 0.2s;
         }
-        
-        #currentTitle { font-size: 0.9rem; letter-spacing: 0.5px; opacity: 0.8; }
+        .waveform-container:hover { filter: brightness(1.2); }
+
     </style>
 </head>
 <body>
 
-    <div class="controls">
-        <button id="playBtn">
-            <i data-lucide="play" id="playIcon"></i>
-        </button>
-        <span id="currentTitle">Select a track</span>
-    </div>
-
-    <div id="waveform"></div>
-
-    <ul class="playlist" id="playlist">
-        </ul>
+    <div class="sample-list" id="sample-list">
+        </div>
 
     <script type="module">
-    import WaveSurfer from 'https://unpkg.com/wavesurfer.js@7/dist/wavesurfer.esm.js'
+        import WaveSurfer from 'https://unpkg.com/wavesurfer.js@7/dist/wavesurfer.esm.js'
 
-    const tracks = [
-        { name: "Heavy Kick Sample", url: "https://raw.githubusercontent.com/iexii/player/main/testt.mp3" },
-        { name: "Dark Snare 01", url: "https://raw.githubusercontent.com/iexii/player/main/testt.mp3" }, // I used your GH link here for stability
-        { name: "Atmospheric Pad", url: "https://raw.githubusercontent.com/iexii/player/main/testt.mp3" }
-    ];
+        const tracksData = [
+            { name: "Heavy Kick", url: "https://raw.githubusercontent.com/iexii/player/main/testt.mp3" },
+            { name: "Dark Snare 01", url: "https://raw.githubusercontent.com/iexii/player/main/testt.mp3" },
+            { name: "Atmospheric Pad", url: "https://raw.githubusercontent.com/iexii/player/main/testt.mp3" }
+        ];
 
-    let currentTrackIndex = 0;
-    let isChangingTrack = false; // Prevents the "cascade" skip
+        const allInstances = [];
 
-    const wavesurfer = WaveSurfer.create({
-        container: '#waveform',
-        waveColor: '#444',
-        progressColor: '#00ff88',
-        cursorColor: '#00ff88',
-        barWidth: 2,
-        barGap: 3,
-        height: 128,
-        backend: 'MediaElement'
-    });
+        const listContainer = document.getElementById('sample-list');
 
-    const playlistElem = document.getElementById('playlist');
-    const titleElem = document.getElementById('currentTitle');
-    const playBtn = document.getElementById('playBtn');
+        tracksData.forEach((track, index) => {
+            // 1. Create the HTML elements for this row
+            const row = document.createElement('div');
+            row.className = 'track-row';
 
-    function updateIcon(isPlaying) {
-        playBtn.innerHTML = isPlaying ? '<i data-lucide="pause"></i>' : '<i data-lucide="play"></i>';
-        lucide.createIcons();
-    }
+            row.innerHTML = `
+                <button class="play-btn" id="btn-${index}">
+                    <i data-lucide="play"></i>
+                </button>
+                <div class="track-info">${track.name}</div>
+                <div class="waveform-container" id="wave-${index}"></div>
+            `;
 
-    // Render Playlist
-    tracks.forEach((track, index) => {
-        const li = document.createElement('li');
-        li.classList.add('track');
-        li.innerHTML = `<span>${track.name}</span>`;
-        li.onclick = () => playTrack(index, true); 
-        playlistElem.appendChild(li);
-    });
+            listContainer.appendChild(row);
 
-    async function playTrack(index, shouldPlay = true) {
-        if (isChangingTrack) return; // Ignore requests if already switching
-        isChangingTrack = true;
+            // 2. Initialize WaveSurfer for this specific row
+            const ws = WaveSurfer.create({
+                container: `#wave-${index}`,
+                waveColor: '#444',
+                progressColor: '#00ff88',
+                barWidth: 2,
+                barGap: 3,
+                height: 40, // Shorter height for the list view
+                url: track.url,
+                backend: 'MediaElement'
+            });
 
-        currentTrackIndex = index;
-        const track = tracks[index];
-        
-        // Update UI
-        document.querySelectorAll('.track').forEach((t, i) => {
-            t.classList.toggle('active', i === index);
-        });
-        titleElem.innerText = `Loading: ${track.name}...`;
+            // Keep track of this instance
+            allInstances.push({ ws, index });
 
-        // 1. Fully stop and clear the previous state
-        wavesurfer.pause();
-        
-        // 2. Load new track
-        try {
-            await wavesurfer.load(track.url);
-            titleElem.innerText = track.name;
+            // 3. Logic: When this one plays, stop all others
+            ws.on('play', () => {
+                allInstances.forEach(item => {
+                    if (item.index !== index) item.ws.pause();
+                });
+                updateRowIcon(index, true);
+            });
+
+            ws.on('pause', () => updateRowIcon(index, false));
             
-            if (shouldPlay) {
-                wavesurfer.play();
-            } else {
-                updateIcon(false);
-            }
-        } catch (err) {
-            console.error("Load failed", err);
-            titleElem.innerText = "Error Loading Track";
+            // When finished, just reset the icon
+            ws.on('finish', () => updateRowIcon(index, false));
+
+            // Button click logic
+            document.getElementById(`btn-${index}`).onclick = () => ws.playPause();
+        });
+
+        // Helper to swap icons
+        function updateRowIcon(index, isPlaying) {
+            const btn = document.getElementById(`btn-${index}`);
+            btn.innerHTML = isPlaying ? '<i data-lucide="pause"></i>' : '<i data-lucide="play"></i>';
+            lucide.createIcons();
         }
 
-        // 3. Unlock the player
-        setTimeout(() => { isChangingTrack = false; }, 500);
-    }
-
-    wavesurfer.on('play', () => updateIcon(true));
-    wavesurfer.on('pause', () => updateIcon(false));
-
-    // STOP THE SKIP: When a track finishes, load next but DO NOT play.
-    wavesurfer.on('finish', () => {
-        let nextIndex = currentTrackIndex + 1;
-        if (nextIndex < tracks.length) {
-            // Load the next one, but wait for user input (shouldPlay = false)
-            playTrack(nextIndex, false);
-        } else {
-            updateIcon(false);
-        }
-    });
-
-    playBtn.onclick = () => wavesurfer.playPause();
-
-    lucide.createIcons();
-    playTrack(0, false);
-</script>
+        lucide.createIcons();
+    </script>
 </body>
 </html>
