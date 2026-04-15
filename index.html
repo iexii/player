@@ -13,6 +13,23 @@
         .track.active { color: #00ff88; background: #1a1a1a; font-weight: bold; }
         .controls { display: flex; gap: 15px; align-items: center; margin-bottom: 15px; }
         button { background: #00ff88; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        /* Custom Scrollbar for the playlist */
+.playlist::-webkit-scrollbar {
+    width: 6px;
+}
+.playlist::-webkit-scrollbar-thumb {
+    background: #333;
+    border-radius: 10px;
+}
+
+/* Hover effect on waveform */
+#waveform canvas {
+    transition: opacity 0.2s;
+}
+#waveform:hover canvas {
+    opacity: 0.8;
+}
+        
     </style>
 </head>
 <body>
