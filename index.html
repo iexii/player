@@ -87,8 +87,8 @@
 
     const tracks = [
         { name: "Heavy Kick Sample", url: "https://raw.githubusercontent.com/iexii/player/main/testt.mp3" },
-        { name: "Dark Snare 01", url: "https://raw.githubusercontent.com/iexii/player/main/testt.mp3" },
-        { name: "Atmospheric Pad", url: "https://raw.githubusercontent.com/iexii/player/main/testt.mp3" }
+        { name: "Dark Snare 01", url: "https://www.dropbox.com/scl/fi/nyw64lfmnzmpxi4lmelju/testt.mp3?rlkey=8odvgkeg6d7y9sdh4i8q6fkcc&st=i433f01p&raw=1" },
+        { name: "Atmospheric Pad", url: "https://drive.google.com/uc?export=download&id=10CscP-Ty_Cbpg6L8h3l8Xp2s28pLZxv5" }
     ];
 
     let currentTrackIndex = 0;
@@ -108,24 +108,25 @@
     const titleElem = document.getElementById('currentTitle');
     const playBtn = document.getElementById('playBtn');
 
-    // Helper to refresh the icon inside the button
     function updateIcon(isPlaying) {
         playBtn.innerHTML = isPlaying 
             ? '<i data-lucide="pause"></i>' 
             : '<i data-lucide="play"></i>';
-        lucide.createIcons(); // Tells Lucide to look for the new <i> tag
+        lucide.createIcons();
     }
 
-    // Render Playlist
     tracks.forEach((track, index) => {
         const li = document.createElement('li');
         li.classList.add('track');
         li.innerHTML = `<span>${track.name}</span>`;
-        li.onclick = () => playTrack(index, true); // User click ALWAYS plays
+        li.onclick = () => playTrack(index, true); 
         playlistElem.appendChild(li);
     });
 
     function playTrack(index, shouldPlay = true) {
+        // Ensure index is valid
+        if (index >= tracks.length) return;
+
         currentTrackIndex = index;
         const track = tracks[index];
         
@@ -134,35 +135,43 @@
         });
         titleElem.innerText = track.name;
 
+        // Stop any current playback before loading new track
+        wavesurfer.stop();
         wavesurfer.load(track.url);
 
         if (shouldPlay) {
             wavesurfer.once('ready', () => {
                 wavesurfer.play();
             });
+        } else {
+            // If we aren't playing, make sure the icon is a Play button
+            updateIcon(false);
         }
     }
 
-    // Icon state listeners
     wavesurfer.on('play', () => updateIcon(true));
     wavesurfer.on('pause', () => updateIcon(false));
 
-    // Handle track finishing
+    // FIX: Only load the next track, DO NOT autoplay it
     wavesurfer.on('finish', () => {
         let nextIndex = currentTrackIndex + 1;
         
-        // Check if there actually IS a next track
         if (nextIndex < tracks.length) {
-            playTrack(nextIndex, true);
+            // Set shouldPlay to FALSE so it waits for the user
+            playTrack(nextIndex, false);
         } else {
-            // End of playlist: stop and show play icon
             updateIcon(false);
         }
     });
 
+    // Handle errors (helps identify if Dropbox/Drive links are broken)
+    wavesurfer.on('error', (e) => {
+        console.error("WaveSurfer Error:", e);
+        titleElem.innerText = "Error loading track - Check file link";
+    });
+
     playBtn.onclick = () => wavesurfer.playPause();
 
-    // Initial Setup: Initialize Lucide and load first track (no autoplay)
     lucide.createIcons();
     playTrack(0, false);
 </script>
